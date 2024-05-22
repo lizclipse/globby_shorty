@@ -94,6 +94,14 @@ impl InputHandler {
                 open_app("/System/Applications/Music.app");
                 true
             }
+            Key::Num5 => {
+                open_app("/Applications/Discord.app");
+                true
+            }
+            Key::Num6 => {
+                open_app("/Applications/Firefox.app");
+                true
+            }
             Key::Num7 => {
                 open_app("/Applications/Microsoft Teams (work or school).app");
                 true
