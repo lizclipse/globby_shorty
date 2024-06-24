@@ -4,11 +4,36 @@ use color_eyre::eyre;
 use rdev::{grab, Event, EventType, Key};
 use thiserror::Error;
 
+// dont ask why we need this, mac is weird i guess
 const CTRL_RIGHT: u32 = 62;
 
+fn main() -> eyre::Result<()> {
+    let handle = InputHandler::new();
+    grab(handle).map_err(ListenError)?;
+    Ok(())
+}
+
+fn open_app(app: &str) {
+    match Command::new("open").arg(app).status() {
+        Ok(status) => {
+            if !status.success() {
+                eprintln!("Failed to open {app}");
+            }
+        }
+        Err(err) => eprintln!("Failed to run `open`: {:#?}", err),
+    }
+}
+
 struct InputHandler {
-    shift_pressed: bool,
-    ctrl_pressed: bool,
+    shift_left: KeyMonitor,
+    shift_right: KeyMonitor,
+    ctrl_left: KeyMonitor,
+    ctrl_right: KeyMonitor,
+    ctrl_unknown: KeyMonitor,
+    alt: KeyMonitor,
+    alt_gr: KeyMonitor,
+    cmd_left: KeyMonitor,
+    cmd_right: KeyMonitor,
 }
 
 impl InputHandler {
@@ -18,8 +43,15 @@ impl InputHandler {
 
         thread::spawn(move || {
             let mut handler = Self {
-                shift_pressed: false,
-                ctrl_pressed: false,
+                shift_left: KeyMonitor::new(Key::ShiftLeft),
+                shift_right: KeyMonitor::new(Key::ShiftRight),
+                ctrl_left: KeyMonitor::new(Key::ControlLeft),
+                ctrl_right: KeyMonitor::new(Key::ControlRight),
+                ctrl_unknown: KeyMonitor::new(Key::Unknown(CTRL_RIGHT)),
+                alt: KeyMonitor::new(Key::Alt),
+                alt_gr: KeyMonitor::new(Key::AltGr),
+                cmd_left: KeyMonitor::new(Key::MetaLeft),
+                cmd_right: KeyMonitor::new(Key::MetaRight),
             };
 
             while let Ok(ev) = rx_input.recv() {
@@ -47,29 +79,48 @@ impl InputHandler {
         };
     }
 
+    fn shift_pressed(&self) -> bool {
+        self.shift_left.is_pressed() || self.shift_right.is_pressed()
+    }
+
+    fn ctrl_pressed(&self) -> bool {
+        self.ctrl_left.is_pressed()
+            || self.ctrl_right.is_pressed()
+            || self.ctrl_unknown.is_pressed()
+    }
+
+    fn alt_pressed(&self) -> bool {
+        self.alt.is_pressed() || self.alt_gr.is_pressed()
+    }
+
+    fn cmd_pressed(&self) -> bool {
+        self.cmd_left.is_pressed() || self.cmd_right.is_pressed()
+    }
+
     fn process_event(&mut self, event: Event) -> Option<Event> {
+        self.shift_left.process_event(&event);
+        self.shift_right.process_event(&event);
+        self.ctrl_left.process_event(&event);
+        self.ctrl_right.process_event(&event);
+        self.ctrl_unknown.process_event(&event);
+        self.alt.process_event(&event);
+        self.alt_gr.process_event(&event);
+        self.cmd_left.process_event(&event);
+        self.cmd_right.process_event(&event);
+
         match &event.event_type {
-            EventType::KeyPress(Key::ShiftLeft) | EventType::KeyPress(Key::ShiftRight) => {
-                self.shift_pressed = true
-            }
-
-            EventType::KeyPress(Key::ControlLeft)
-            | EventType::KeyPress(Key::ControlRight)
-            | EventType::KeyPress(Key::Unknown(CTRL_RIGHT)) => self.ctrl_pressed = true,
-
-            EventType::KeyRelease(Key::ShiftLeft) | EventType::KeyRelease(Key::ShiftRight) => {
-                self.shift_pressed = false
-            }
-
-            EventType::KeyRelease(Key::ControlLeft)
-            | EventType::KeyRelease(Key::ControlRight)
-            | EventType::KeyRelease(Key::Unknown(CTRL_RIGHT)) => self.ctrl_pressed = false,
-
-            EventType::KeyPress(key) if self.shift_pressed && self.ctrl_pressed => {
+            // Shortcut-key
+            EventType::KeyPress(key)
+                if self.shift_pressed()
+                    && self.ctrl_pressed()
+                    && !self.alt_pressed()
+                    && !self.cmd_pressed() =>
+            {
                 if Self::exec_shortcut(*key) {
                     return None;
                 }
             }
+
             _ => (),
         };
 
@@ -119,21 +170,30 @@ impl InputHandler {
     }
 }
 
-fn open_app(app: &str) {
-    match Command::new("open").arg(app).status() {
-        Ok(status) => {
-            if !status.success() {
-                eprintln!("Failed to open {app}");
-            }
-        }
-        Err(err) => eprintln!("Failed to run `open`: {:#?}", err),
-    }
+struct KeyMonitor {
+    key: Key,
+    pressed: bool,
 }
 
-fn main() -> eyre::Result<()> {
-    let handle = InputHandler::new();
-    grab(handle).map_err(ListenError)?;
-    Ok(())
+impl KeyMonitor {
+    pub fn new(key: Key) -> Self {
+        KeyMonitor {
+            key,
+            pressed: false,
+        }
+    }
+
+    pub fn is_pressed(&self) -> bool {
+        self.pressed
+    }
+
+    pub fn process_event(&mut self, event: &Event) {
+        match event.event_type {
+            EventType::KeyPress(key) if key == self.key => self.pressed = true,
+            EventType::KeyRelease(key) if key == self.key => self.pressed = false,
+            _ => (),
+        }
+    }
 }
 
 #[derive(Debug, Error)]
