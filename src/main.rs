@@ -134,7 +134,7 @@ impl InputHandler {
                 true
             }
             Key::Num2 => {
-                open_app("/Applications/Firefox.app");
+                open_app("/Applications/Safari.app");
                 true
             }
             Key::Num3 => {
@@ -150,7 +150,7 @@ impl InputHandler {
                 true
             }
             Key::Num6 => {
-                open_app("/Applications/Safari.app");
+                open_app("/Applications/Firefox.app");
                 true
             }
             Key::Num7 => {
