@@ -154,7 +154,7 @@ impl InputHandler {
                 true
             }
             Key::Num7 => {
-                open_app("/Applications/Microsoft Teams (work or school).app");
+                open_app("/Applications/Microsoft Teams.app");
                 true
             }
             Key::Num8 => {
