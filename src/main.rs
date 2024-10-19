@@ -130,7 +130,7 @@ impl InputHandler {
     fn exec_shortcut(key: Key) -> bool {
         match key {
             Key::Num1 => {
-                open_app("/Applications/WezTerm.app");
+                open_app("/Applications/Alacritty.app");
                 true
             }
             Key::Num2 => {
