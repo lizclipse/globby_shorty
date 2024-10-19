@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <key>Label</key>
+    <string>liz.globby-shorty</string>
+    <key>ProgramArguments</key>
+    <array>
+      <string>/Users/liz/Dev/github/globby_shorty/target/release/globby_shorty</string>
+    </array>
+    <key>StandardOutPath</key>
+    <string>/tmp/globby_shorty.stdout.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/globby_shorty.stderr.log</string>
+    <key>WorkingDirectory</key>
+    <string>/Users/liz/Dev/github/globby_shorty</string>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>UserName</key>
+    <string>liz</string>
+  </dict>
+</plist>
+
