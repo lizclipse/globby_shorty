@@ -1,14 +1,18 @@
-use std::{process::Command, sync::mpsc, thread};
+use std::{env, fs, path::Path, process::Command, sync::mpsc, thread};
 
-use color_eyre::eyre;
+use color_eyre::eyre::{self, Context};
 use rdev::{grab, Event, EventType, Key};
+use serde::Deserialize;
 use thiserror::Error;
 
 // dont ask why we need this, mac is weird i guess
 const CTRL_RIGHT: u32 = 62;
 
 fn main() -> eyre::Result<()> {
-    let handle = InputHandler::new();
+    let config = Config::load()?;
+    println!("Mapping the following shortcuts:");
+    config.print();
+    let handle = InputHandler::new(config);
     grab(handle).map_err(ListenError)?;
     Ok(())
 }
@@ -24,7 +28,61 @@ fn open_app(app: &str) {
     }
 }
 
+#[derive(Deserialize)]
+struct Config {
+    num1: Option<String>,
+    num2: Option<String>,
+    num3: Option<String>,
+    num4: Option<String>,
+    num5: Option<String>,
+    num6: Option<String>,
+    num7: Option<String>,
+    num8: Option<String>,
+    num9: Option<String>,
+}
+
+impl Config {
+    pub fn load() -> eyre::Result<Config> {
+        let path = Path::new(&env::var("HOME").context("HOME env var not available")?)
+            .join(".config/globby_shorty.toml");
+        let config = fs::read_to_string(&path)
+            .with_context(|| format!("failed to load config from {}", path.display()))?;
+        Ok(toml::from_str(&config)?)
+    }
+
+    pub fn print(&self) {
+        if let Some(path) = &self.num1 {
+            println!("  Num 1 => {path}")
+        }
+        if let Some(path) = &self.num2 {
+            println!("  Num 2 => {path}")
+        }
+        if let Some(path) = &self.num3 {
+            println!("  Num 3 => {path}")
+        }
+        if let Some(path) = &self.num4 {
+            println!("  Num 4 => {path}")
+        }
+        if let Some(path) = &self.num5 {
+            println!("  Num 5 => {path}")
+        }
+        if let Some(path) = &self.num6 {
+            println!("  Num 6 => {path}")
+        }
+        if let Some(path) = &self.num7 {
+            println!("  Num 7 => {path}")
+        }
+        if let Some(path) = &self.num8 {
+            println!("  Num 8 => {path}")
+        }
+        if let Some(path) = &self.num9 {
+            println!("  Num 9 => {path}")
+        }
+    }
+}
+
 struct InputHandler {
+    config: Config,
     shift_left: KeyMonitor,
     shift_right: KeyMonitor,
     ctrl_left: KeyMonitor,
@@ -37,12 +95,13 @@ struct InputHandler {
 }
 
 impl InputHandler {
-    fn new() -> impl Fn(Event) -> Option<Event> {
+    fn new(config: Config) -> impl Fn(Event) -> Option<Event> {
         let (tx_input, rx_input) = mpsc::channel();
         let (tx_output, rx_ouput) = mpsc::channel();
 
         thread::spawn(move || {
             let mut handler = Self {
+                config,
                 shift_left: KeyMonitor::new(Key::ShiftLeft),
                 shift_right: KeyMonitor::new(Key::ShiftRight),
                 ctrl_left: KeyMonitor::new(Key::ControlLeft),
@@ -116,7 +175,7 @@ impl InputHandler {
                     && !self.alt_pressed()
                     && !self.cmd_pressed() =>
             {
-                if Self::exec_shortcut(*key) {
+                if self.exec_shortcut(*key) {
                     return None;
                 }
             }
@@ -127,42 +186,78 @@ impl InputHandler {
         Some(event)
     }
 
-    fn exec_shortcut(key: Key) -> bool {
+    fn exec_shortcut(&self, key: Key) -> bool {
         match key {
             Key::Num1 => {
-                open_app("/Applications/Alacritty.app");
+                let Some(path) = &self.config.num1 else {
+                    return false;
+                };
+
+                open_app(&path);
                 true
             }
             Key::Num2 => {
-                open_app("/Applications/Safari.app");
+                let Some(path) = &self.config.num2 else {
+                    return false;
+                };
+
+                open_app(&path);
                 true
             }
             Key::Num3 => {
-                open_app("/Applications/Obsidian.app");
+                let Some(path) = &self.config.num3 else {
+                    return false;
+                };
+
+                open_app(&path);
                 true
             }
             Key::Num4 => {
-                open_app("/System/Applications/Music.app");
+                let Some(path) = &self.config.num4 else {
+                    return false;
+                };
+
+                open_app(&path);
                 true
             }
             Key::Num5 => {
-                open_app("/Applications/Discord.app");
+                let Some(path) = &self.config.num5 else {
+                    return false;
+                };
+
+                open_app(&path);
                 true
             }
             Key::Num6 => {
-                open_app("/Applications/Firefox.app");
+                let Some(path) = &self.config.num6 else {
+                    return false;
+                };
+
+                open_app(&path);
                 true
             }
             Key::Num7 => {
-                open_app("/Applications/Microsoft Teams.app");
+                let Some(path) = &self.config.num7 else {
+                    return false;
+                };
+
+                open_app(&path);
                 true
             }
             Key::Num8 => {
-                open_app("/Applications/Microsoft Outlook.app");
+                let Some(path) = &self.config.num8 else {
+                    return false;
+                };
+
+                open_app(&path);
                 true
             }
             Key::Num9 => {
-                open_app("/Applications/Slack.app");
+                let Some(path) = &self.config.num9 else {
+                    return false;
+                };
+
+                open_app(&path);
                 true
             }
             _ => false,

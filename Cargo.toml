@@ -6,4 +6,6 @@ edition = "2021"
 [dependencies]
 color-eyre = "0.6.3"
 rdev = { version = "0.5.3", features = ["unstable_grab"] }
+serde = { version = "1.0.210", features = ["derive"] }
 thiserror = "1.0.60"
+toml = "0.8.19"
